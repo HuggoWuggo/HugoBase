@@ -1,4 +1,6 @@
 import argparse
+import os
+import subprocess
 
 class bcolors:
     HEADER = '\033[95m'
@@ -65,28 +67,37 @@ parser = argparse.ArgumentParser(description="This is a custom DataBase Maker Fo
 parser.add_argument("-cd", "--create_database", help="Create a New Database", action="store_true")
 parser.add_argument("-ct", "--create_table", help="Create a New Table", action="store_true")
 parser.add_argument("-u", "--use", help="Use an Existing Database", nargs=1)
+parser.add_argument("-d", "--delete", help="Delete an Existing Database", action="store_true")
 
 args = parser.parse_args()
 
-if args.create_database:
+db_name = None
+
+if args.use and args.create_database:
+    print(f"{bcolors.FAIL}You can't use and create a database at the same time!{bcolors.ENDC}")
+    exit()
+elif args.create_database:
     db = Database()
 
     print(f"{bcolors.OKGREEN}Welcome to the Database Maker!{bcolors.ENDC}")
     print(f"{bcolors.OKCYAN}TYPE 'EXIT' (without the quotes) to exit in either table name or column name prompts{bcolors.ENDC}")
     
     db_name = str(input(f"Enter the{bcolors.OKGREEN} name{bcolors.ENDC} of the {bcolors.YELLOW}database{bcolors.ENDC}: "))
+    db_author = str(input(f"Enter the{bcolors.OKGREEN} author{bcolors.ENDC} of the {bcolors.YELLOW}database{bcolors.ENDC}: "))
+    if db_author == "":
+        db_author = "Anonymous"
 
-    db.create(name=db_name)
+    db.create(name=db_name, author=db_author)
 
     while 1:
         table_name = str(input(f"Enter the{bcolors.OKGREEN} name{bcolors.ENDC} of a {bcolors.YELLOW}table{bcolors.ENDC} you want to make: "))
-        if table_name == "exit":
+        if table_name == "exit" or table_name == "EXIT":
             break
         else:
             columns = []
             while 1:
                 column_name = str(input(f"Enter the{bcolors.OKGREEN} name{bcolors.ENDC} of the {bcolors.YELLOW}column{bcolors.ENDC} you want to make: "))
-                if column_name == "exit":
+                if column_name == "exit" or column_name == "EXIT":
                     break
                 else:
                     while 1:
@@ -119,7 +130,31 @@ if args.create_database:
 
                     columns.append(Column(name=column_name, type=column_type, length=column_length, default_value=column_default_value))
 
-            db.add_table(Table(name=table_name, columns=columns))
-        
+            table_author = str(input(f"Enter the{bcolors.OKGREEN} author{bcolors.ENDC} of the {bcolors.YELLOW}table{bcolors.ENDC}: "))
+            if table_author == "":
+                table_author = "Anonymous"
+                    
 
-    print(db.info())
+            db.add_table(Table(name=table_name, columns=columns, author=table_author))
+        
+    os.system("cls")
+    print("Successfully Created Database!")
+
+    file_name = db_name.replace(" ", "_")
+    file_name += ".hdb"
+
+    with open(file_name, "w") as file:
+        file.write(f"{db.info()}")
+
+    subprocess.run(["attrib","+H",file_name],check=True)
+elif args.use:
+    if not os.path.exists(args.use[0]):
+        print(f"{bcolors.FAIL}Database Not Found!{bcolors.ENDC}")
+    else:
+        file = open(args.use[0], "r")
+        print(file.read())
+        if args.delete:
+            os.remove(f"{args.use[0]}")
+            print(f"{bcolors.OKGREEN}Successfully Deleted Database!{bcolors.ENDC}")
+elif args.delete:
+    print(f"{bcolors.FAIL}You need to specify a database to delete!{bcolors.ENDC}")
