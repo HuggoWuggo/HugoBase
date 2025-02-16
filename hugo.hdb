@@ -1,0 +1,30 @@
+Database: hugo,
+	Tables: [
+		
+		Table-Name: cars,
+		Columns: [
+			Column-Name: model, Type: str, Length: 255, values [
+				ford,
+			], end-values
+			Column-Name: age, Type: int, Length: 255, values [
+				1,
+			], end-values
+		], end-columns
+		Author: Anonymous,
+		Version: 1.0
+		end_table
+
+		
+		Table-Name: people,
+		Columns: [
+			Column-Name: , Type: str, Length: 255, values [
+				hugo,
+			], end-values
+		], end-columns
+		Author: Anonymous,
+		Version: 1.0
+		end_table
+
+	], end-tables
+Author: Anonymous,
+Version: 1.0
