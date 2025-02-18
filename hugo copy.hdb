@@ -4,15 +4,13 @@ Database: hugo,
 		Table-Name: cars,
 		Columns: [
 			Column-Name: model, Type: str, Length: 255, values [
-				subaru,
-				ford
+				ford,
 			], end-values
 			Column-Name: age, Type: int, Length: 255, values [
-				NULL,
-				1
+				1,
 			], end-values
 		], end-columns
-		Author: None,
+		Author: m,
 		Version: 1.0
 		end_table
 
@@ -20,16 +18,13 @@ Database: hugo,
 		Table-Name: people,
 		Columns: [
 			Column-Name: firstname, Type: str, Length: 255, values [
-				luck-luke-westy,
-				quidam,
-				allah,
-				hugo
+				hugo,
 			], end-values
 		], end-columns
-		Author: None,
+		Author: Anonymous,
 		Version: 1.0
 		end_table
 
 	], end-tables
-Author: ,
+Author: Anonymous,
 Version: 1.0

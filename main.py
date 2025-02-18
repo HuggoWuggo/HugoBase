@@ -22,26 +22,42 @@ class Type:
     DATE = str
 
 class Column:
-    def __init__(self, name: str, type: Type, length: int = None, values=list, default_value=None):
+    def __init__(self, name: str, type: Type, length: int = None, values=None, default_value=None):
         self.name = name
         self.type = type
         self.length = length
-
+        # If default_value is provided, use it as the sole value.
         if default_value is not None:
             self.values = [default_value]
+        # Otherwise, use provided values or an empty list.
         else:
-            self.values = values
+            self.values = values if values is not None else []
 
     def __str__(self):
         type_name = self.type.__name__ if hasattr(self.type, '__name__') else self.type
+        # Join values with the nicer separator.
+        formatted_values = ",\n\t\t\t\t".join(str(value) for value in self.values)
         return (f"Column-Name: {self.name}, Type: {type_name}, Length: {self.length}, values [\n\t\t\t\t"
-                f"{''.join(str(value) for value in self.values) + ',\n\t\t\t'}], end-values")
+                f"{formatted_values}\n\t\t\t], end-values")
 
     def edit(self, name: str = None, type: Type = None, length: int = None, value=None):
+        # Implementation left as needed.
         pass
 
-    def insert_into(self, value, location):
-        self.values += value
+    def insert_into(self, value, location=None):
+        """
+        Insert the given value into the column's values.
+        If a location is provided (and valid), insert at that position;
+        otherwise, append to the end.
+        """
+        value_str = str(value)
+        # If location is invalid or not provided, append.
+        if location is None or not isinstance(location, int) or location < 0 or location > len(self.values):
+            self.values.append(value_str)
+        else:
+            self.values.insert(location, value_str)
+
+
 
     def values(self):
         return self.values
@@ -63,6 +79,8 @@ class Table:
 class Database:
     def __init__(self):
         self.tables = []
+        self.author = ""
+        self.version = 1.0
 
     def create(self, name: str, author=None, version=1.0):
         self.name = name
@@ -72,7 +90,7 @@ class Database:
     def add_table(self, table: Table):
         self.tables.append(table)
 
-    def info(self):
+    def info(self) -> str:
         tables_str = "\n\t\t".join(f"{str(table)}\t\tend_table\n" for table in self.tables)
         return f"Database: {self.name},\n\tTables: [\n\t\t{tables_str}\n\t], end-tables\nAuthor: {self.author},\nVersion: {self.version}\n"
     
@@ -209,6 +227,52 @@ class Database:
                         columns.append(Column(name=column_name, type=column_type, length=column_length, default_value=column_default_value))
                 self.add_table(Table(name=table_name, columns=columns, author=table_author))
 
+def print_table(table: Table, order = None):
+    num = -1
+    max_values = []
+
+    for column in table.columns:
+        num += 1
+        max_values.append(5)
+        if len(column.name) > max_values[num]:
+            max_values[num] = len(column.name)
+        
+        for value in column.values:
+            if len(value) > max_values[num]:
+                max_values[num] = len(value)
+    
+    print("| ", end="")
+    num = -1
+    while num < len(max_values) - 1:
+        num += 1
+        print(f"{table.columns[num].name:<{max_values[num]}}", end="")
+        print(" | ", end="")
+    
+    print("")
+    print("|", end="")
+
+    for i in range(len(max_values)):
+        for y in range(max_values[i] + 2):
+            print("-", end="")
+        print("|", end="")
+
+    print("")
+
+    # Determine the maximum number of rows among all columns
+    max_rows = max(len(column.values) for column in table.columns)
+
+    # For each row index, iterate over each column and print the value if it exists,
+    # otherwise print an empty string
+    for row in range(max_rows):
+        print("| ", end="")
+        for col_index, column in enumerate(table.columns):
+            # Get the value if available, else use an empty string
+            value = column.values[row] if row < len(column.values) else ""
+            # Use the corresponding max width for that column
+            print(f"{value:<{max_values[col_index]}} | ", end="")
+        print("")  # Newline after each row
+
+    
 def main():
     parser = argparse.ArgumentParser(description="This is a custom DataBase Maker For Robotics and Coding 2025! Made By Me (Hugo Lewczak)")
 
@@ -216,8 +280,10 @@ def main():
     parser.add_argument("-ct", "--create_table", help="Create a New Table", action="store_true")
     parser.add_argument("-u", "--use", help="Use an Existing Database", nargs=1, metavar="DATABASE")
     parser.add_argument("-d", "--delete", help="Delete an Existing Database", action="store_true")
-    parser.add_argument("-t", "--table", help="Use a Table From an Existing Database", action="store_true")
-    parser.add_argument("-i", "--insert", help="Insert data into table", nargs=2, metavar=("DATA", "COLUMN"))
+    parser.add_argument("-t", "--table", help="Use a Table From an Existing Database", nargs=1, metavar="TABLE_NAME")
+    parser.add_argument("-i", "--insert", help="Insert data into table", nargs=2, metavar=("DATA", "COLUMN_NAME"))
+    parser.add_argument("-ld", "--list_databases", help="List any databases in the current directory", action="store_true")
+    parser.add_argument("-lt", "--list_tables", help="List any tables in a specified database", action="store_true")
 
 
     args = parser.parse_args()
@@ -227,6 +293,15 @@ def main():
     if args.use and args.create_database:
         print(f"{bcolors.FAIL}You can't use and create a database at the same time!{bcolors.ENDC}")
         exit()
+    elif args.list_databases:
+        files = [file for file in os.listdir('.') if file.endswith('.hdb')]
+        for file in files:
+            print(file)
+    elif args.list_tables:
+        db = Database()
+        tables = db.load(args.use[0])
+        for i, table in enumerate(tables):
+            print(f"Table {i} : {table.name}")
     elif args.create_database:
         db = Database()
 
@@ -243,7 +318,7 @@ def main():
             
         os.system("cls")
         print("Successfully Created Database!")
-
+        
         file_name = db_name.replace(" ", "_") + ".hdb"
         
         # Delete the file if it already exists
@@ -266,20 +341,62 @@ def main():
             db = Database()
             tables = db.load(args.use[0])
 
-            for table in tables:
-                print(f"Table: {table.name}")
-                for column in table.columns:
-                    print(f"  Column: {column.name}, Type: {column.type}, Length: {column.length}, Values: {column.values}")
-
             if args.delete:
                 os.remove(args.use[0])
                 print(f"{bcolors.OKGREEN}Successfully Deleted Database!{bcolors.ENDC}")
             elif args.create_table:
                 db.table_wizard()
-            elif args.insert:
-                db.tables[0].columns[0].insert_into(args.insert[1], 0)
-    elif args.delete or args.create_table:
+            elif args.table:
+                # table_index = int(args.table[0])
+                # col_index = int(args.insert[1])
+
+                table_index = -1
+                column_index = -1
+                index = -1
+                index_c = -1
+
+                c_name = ""
+
+                for table in tables:
+                    index += 1
+                    if table.name == args.table[0]:
+                        table_index = index
+                        if args.insert:
+                            for column in table.columns:
+                                if column.name == args.insert[1]:
+                                    index_c += 1
+                                    column_index = index_c
+                                    c_name = column.name
+                                    break
+                        break
+                
+                if args.insert:
+                    if table_index != -1 and column_index != -1:
+                        for column in tables[table_index].columns:
+                            if column.name == args.insert[1]:
+                                column.insert_into(f"{args.insert[0]}", 0)
+                            else:
+                                column.insert_into(f"NULL", 0)
+                        os.remove(args.use[0])
+                        with open(args.use[0], "w") as file:
+                            file.write(db.info())
+                    else:
+                        print(f"{bcolors.FAIL}Incorrect column name or table name{bcolors.ENDC}")
+                        exit()
+
+                print_table(tables[table_index])
+            else:
+                print(f"{bcolors.FAIL}The use action needs to do something!{bcolors.ENDC}")
+            
+            # for table in tables:
+            #     print(f"Table: {table.name}")
+            #     for column in table.columns:
+            #         print(f"  Column: {column.name}, Type: {column.type}, Length: {column.length}, Values: {column.values}")
+
+    elif args.delete or args.create_table or args.table:
         print(f"{bcolors.FAIL}You need to specify a database to edit it!{bcolors.ENDC}")
+    elif args.insert:
+        print(f"{bcolors.FAIL}You need to specify a table to edit it!{bcolors.ENDC}")
 
 if __name__ == "__main__":
     main()
